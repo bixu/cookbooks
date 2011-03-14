@@ -1,0 +1,50 @@
+#!/bin/bash
+
+if [ "$USER" == "root" ]; then
+	echo "It's too dangerous to run this as root.  Exiting..."
+	exit 0
+fi
+
+if [ "$#" -lt "1" ]; then
+    echo "usage: $0 [identifier] [command (optional)]"
+    exit 1
+fi
+
+CACHE="/etc/hosts"
+CANDIDATES=`grep $1 $CACHE | wc -l`
+SSH="ssh -t"
+
+if [ $CANDIDATES -eq 0 ]; then
+    echo "No nodes match your search.  Exiting..."
+elif [ $CANDIDATES -ge 2 ]; then
+    HOSTS=`grep $1 "$CACHE"`
+    echo "Please pick one of these nodes to stab, or type 'all'
+if you are sending a command to multiple hosts (use caution):"
+    echo ""
+    echo "$HOSTS"
+    echo ""
+    read PICK
+    if [ "$PICK" == "all" ] && [ "$#" -ge 2 ]; then
+    	for H in `grep $1 "$CACHE" | awk '{print $1}'`; do
+    	    echo "Connecting to `grep $H $CACHE | awk '{print $3, $1}'`…"
+    	    ssh -o "PasswordAuthentication no" $H $2
+    	    echo
+    	done
+    else	
+    	echo "Connecting to `grep $PICK $CACHE | awk '{print $3}'`..."
+    		if [ $# -eq 1 ]; then
+    			$SSH  `grep $PICK $CACHE | awk '{print $1}'`
+    		elif [ $# -ge 2 ]; then
+    			$SSH `grep $PICK $CACHE | awk '{print $1}'` $2
+    		fi
+	fi 
+else
+	echo "Connecting to `grep $1 $CACHE | awk '{print $3}'`..."
+    if [ $# -eq 1 ]; then
+    	$SSH `grep $1 $CACHE | awk '{print $1}'`
+    	echo "here"
+	elif [ $# -ge 2 ]; then
+		$SSH `grep $1 $CACHE | awk '{print $1}'` $2
+		echo  $SSH `grep $1 $CACHE | awk '{print $1}'` $2
+    fi
+fi
